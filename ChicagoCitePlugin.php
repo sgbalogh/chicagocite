@@ -1,9 +1,23 @@
 <?php
-/// This simple plugin is based on some very helpful code and instructions provided on the Omeka forum by sheepeeh (http://omeka.org/forums/topic/change-citation-style)
+/// This simple plugin is based on some very helpful code and instructions provided on
+/// the Omeka forum by sheepeeh (http://omeka.org/forums/topic/change-citation-style)
 ///
-/// Stephen Balogh, 2015
+/// The plugin will check the "Item Type" metadata element within Omeka's Zotero array,
+/// and (according to the Chicago Manual of Style rules pertaining to that item type)
+/// generate Chicago citations by pulling from the Zotero metadata associated with the
+/// Omeka item.
+///
+/// Currently, this document will detect the following item types:
+/// Book, Book Section, Journal Article, Newspaper Article, Webpage, Thesis, Document
+///
+/// This plugin was originally created to serve the needs of New York University
+/// Libraries' "Jewish Peddler Project" (http://jewishpeddler.org)
+///
+/// Last updated: Feb. 23, 2015
+///
+/// Stephen Balogh, 2015 | stephen.balogh@nyu.edu
 
-class ChicagoCitePlugin extends Omeka_Plugin_AbstractPlugin
+class PeddlerCitationPlugin extends Omeka_Plugin_AbstractPlugin
 {
 	protected $_filters = array('item_citation');
 
@@ -14,7 +28,9 @@ class ChicagoCitePlugin extends Omeka_Plugin_AbstractPlugin
 		$document = strip_formatting(metadata('item', array('Zotero', 'Item Type')));
 		if ($document) {
 			switch ($document) {
-				case 'Book':  /// FOLLOWING IS CHICAGO STYLE FOR ENTIRE BOOK
+			
+// BEGIN BOOK			
+				case 'Book':
 
 
 		$citation = '';
@@ -101,17 +117,19 @@ class ChicagoCitePlugin extends Omeka_Plugin_AbstractPlugin
 			$citation .= "Unknown Date).";
 	}
 
-	/// Chicago-style item Publisher and Archive
-	///	$citation .= "Repository Name";
-
 	///	$accessed = format_date(time(), Zend_Date::DATE_LONG);
 	///	$url = html_escape(record_url('item', null, true));
 	/// Chicago-style item citation: access date and URL
 	///	$citation .= __('accessed %1$s, %2$s.', $accessed, $url);
 		
 
-break; /// End of Book section
-case 'Journal Article':    /// THIS IS FOR JOURNALS
+break;
+
+// END BOOK
+//
+// BEGIN JOURNAL ARTICLE
+
+case 'Journal Article':
 
 $citation = '';
 
@@ -210,21 +228,16 @@ $citation = '';
 		if ($DOI) {
 			$citation .= " doi: $DOI.";
 		}
-		///else {
-			///$citation .= ".";
 
 
-	/// Chicago-style item Publisher and Archive
-	///	$citation .= "Repository Name";
 
-	///	$accessed = format_date(time(), Zend_Date::DATE_LONG);
-	///	$url = html_escape(record_url('item', null, true));
-	/// Chicago-style item citation: access date and URL
-	///	$citation .= __('accessed %1$s, %2$s.', $accessed, $url);
+break;
 
+// END JOURNAL ARTICLE
+//
+// BEGIN BOOK SECTION
 
-break; // End of Journal section
-case 'Book Section':    /// THIS IS FOR BOOK SECTIONS
+case 'Book Section':
 
 $citation = '';
 
@@ -355,12 +368,296 @@ $citation = '';
 	}
 
 
-break; // End of BOOK SECTION section
+break;
+
+// END BOOK SECTION / CHAPTER
+//
+// BEGIN DOCUMENT
+
+case 'Document':
+
+$citation = '';
+
+		$authors = metadata('item', array('Zotero', 'Author'), array('all' => true));
+	/// Strip formatting and remove empty author elements.
+		$authors = array_filter(array_map('strip_formatting', $authors));
+		if ($authors) {
+			switch (count($authors)) {
+				case 1:
+				$author = $authors[0];
+				break;
+				case 2:
+	/// Chicago-style item citation: two authors
+				$author = __('%1$s and %2$s', $authors[0], $authors[1]);
+				break;
+				case 3:
+	/// Chicago-style item citation: three authors
+				$author = __('%1$s, %2$s, and %3$s', $authors[0], $authors[1], $authors[2]);
+				break;
+				default:
+	/// Chicago-style item citation: more than three authors
+				$creator = __('%s et al.', $authors[0]);
+			}
+			$citation .= "$author: ";
+		} else {
+			$citation .= "";
+		}
+
+				$title = strip_formatting(metadata('item', array('Dublin Core', 'Title')));
+		if ($title) {
+			$citation .= "$title";
+		}
+
+		$date = metadata('item', array('Zotero', 'Date'), array('all' => true));
+		$date = array_filter(array_map('strip_formatting', $date));
+		if ($date) {
+			switch (count($date)) {
+				case 1:
+				$date = $date[0];
+				break;
+			}
+			$citation .= ", $date.";
+		} else {
+			$citation .= ".";
+	}
+
+		$arcloc = metadata('item', array('Zotero', 'Archive Location'), array('all' => true));
+		$arcloc = array_filter(array_map('strip_formatting', $arcloc));
+		if ($arcloc) {
+			switch (count($arcloc)) {
+				case 1:
+				$arcloc = $arcloc[0];
+				break;
+				case 2:
+	/// two fields in publishing metadata –– publisher then location
+				$arcloc = __('%2$s and %1$s', $arcloc[0], $arcloc[1]);
+				break;
+			
+			}
+			$citation .= " $arcloc.";
+		} else {
+			$citation .= "";
+	}
+	
+
+break;
+
+// END DOCUMENT
+//
+// BEGIN NEWSPAPER ARTICLE
+
+case 'Newspaper Article':
+
+$citation = '';
+
+		$authors = metadata('item', array('Zotero', 'Author'), array('all' => true));
+	/// Strip formatting and remove empty author elements.
+		$authors = array_filter(array_map('strip_formatting', $authors));
+		if ($authors) {
+			switch (count($authors)) {
+				case 1:
+				$author = $authors[0];
+				break;
+				case 2:
+	/// Chicago-style item citation: two authors
+				$author = __('%1$s and %2$s', $authors[0], $authors[1]);
+				break;
+				case 3:
+	/// Chicago-style item citation: three authors
+				$author = __('%1$s, %2$s, and %3$s', $authors[0], $authors[1], $authors[2]);
+				break;
+				default:
+	/// Chicago-style item citation: more than three authors
+				$creator = __('%s et al.', $authors[0]);
+			}
+			$citation .= "$author. ";
+		} else {
+			$citation .= "Author Unknown. ";
+		}
+
+				$title = strip_formatting(metadata('item', array('Dublin Core', 'Title')));
+		if ($title) {
+			$citation .= "“".$title.".” ";
+		}
+
+		$publication = metadata('item', array('Zotero', 'Publication Title'), array('all' => true));
+		$publication = array_filter(array_map('strip_formatting', $publication));
+		if ($publication) {
+			switch (count($publication)) {
+				case 1:
+				$publication = __('<i>%1$s</i>', $publication[0]);
+				break;
+			}
+			$citation .= "$publication";
+		} else {
+			$citation .= "<i>Publication Title Missing</i>";
+	}
+	
+		
+		$date = metadata('item', array('Zotero', 'Date'), array('all' => true));
+		$date = array_filter(array_map('strip_formatting', $date));
+		if ($date) {
+			switch (count($date)) {
+				case 1:
+				$date = $date[0];
+				break;
+			}
+			$citation .= ", ($date)";
+		} else {
+			$citation .= ", (Unknown Date)";
+	}
+
+			$pagerange = strip_formatting(metadata('item', array('Zotero', 'Pages')));
+		if ($pagerange) {
+			$citation .= ": $pagerange";
+		}
+		else {
+			$citation .= "";
+}
+
+			$url = strip_formatting(metadata('item', array('Zotero', 'URL')));
+		if ($url) {
+			$citation .= ", <a href=\"$url\">$url</a>";
+		}
+		else {
+			$citation .= ".";
+}
+
+break;
+
+// END NEWSPAPER ARTICLE
+//
+// BEGIN THESIS
+
+case 'Thesis':
+
+$citation = '';
+
+		$authors = metadata('item', array('Zotero', 'Author'), array('all' => true));
+	/// Strip formatting and remove empty author elements.
+		$authors = array_filter(array_map('strip_formatting', $authors));
+		if ($authors) {
+			switch (count($authors)) {
+				case 1:
+				$author = $authors[0];
+				break;
+				case 2:
+	/// Chicago-style item citation: two authors
+				$author = __('%1$s and %2$s', $authors[0], $authors[1]);
+				break;
+				case 3:
+	/// Chicago-style item citation: three authors
+				$author = __('%1$s, %2$s, and %3$s', $authors[0], $authors[1], $authors[2]);
+				break;
+				default:
+	/// Chicago-style item citation: more than three authors
+				$creator = __('%s et al.', $authors[0]);
+			}
+			$citation .= "$author. ";
+		} else {
+			$citation .= "Author Unknown. ";
+		}
+
+				$title = strip_formatting(metadata('item', array('Dublin Core', 'Title')));
+		if ($title) {
+			$citation .= "“".$title.".” ";
+		}
+
+	
+		$publisher = metadata('item', array('Zotero', 'Publisher'), array('all' => true));
+		$publisher = array_filter(array_map('strip_formatting', $publisher));
+		$place = strip_formatting(metadata('item', array('Zotero', 'Place')));
+		if ($publisher) {
+			switch (count($publisher)) {
+				case 1:
+				$publisher = $publisher[0];
+				break;
+				case 2:
+	/// two fields in publishing metadata –– publisher then location
+				$publisher = __('%2$s, %1$s', $publisher[0], $publisher[1]);
+				break;
+			
+			}
+			$citation .= "Thesis, $publisher, ";
+		} elseif ($place) {
+			$citation .= "Thesis, $place, ";
+		} else {
+			$citation .= "Thesis, Unknown Institution, ";
+	}
+
+
+		$date = metadata('item', array('Zotero', 'Date'), array('all' => true));
+		$date = array_filter(array_map('strip_formatting', $date));
+		if ($date) {
+			switch (count($date)) {
+				case 1:
+				$date = $date[0];
+				break;
+			}
+			$citation .= "$date.";
+		} else {
+			$citation .= "Unknown Date.";
+	}
+
+
+break; 
+
+// END THESIS
+//
+// BEGIN WEBPAGE
+
+case 'Webpage':
+
+$citation = '';
+
+		$publication = metadata('item', array('Zotero', 'Publication Title'), array('all' => true));
+		$publication = array_filter(array_map('strip_formatting', $publication));
+		if ($publication) {
+			switch (count($publication)) {
+				case 1:
+				$publication = __('<i>%1$s</i>', $publication[0]);
+				break;
+			}
+			$citation .= "$publication.";
+		} else {
+			$citation .= "<i>Unnamed Web Collection.</i> ";
+	}
+	
+			$title = strip_formatting(metadata('item', array('Dublin Core', 'Title')));
+		if ($title) {
+			$citation .= " “".$title.".” ";
+		}
+
+		
+		$dateacc = metadata('item', array('Zotero', 'Access Date'), array('all' => true));
+		$date = array_filter(array_map('strip_formatting', $dateacc));
+		if ($date) {
+			switch (count($dateacc)) {
+				case 1:
+				$dateacc = $dateacc[0];
+				break;
+			}
+			$citation .= "Accessed $dateacc. ";
+		} else {
+			$citation .= "";
+	}
+
+			$url = strip_formatting(metadata('item', array('Zotero', 'URL')));
+		if ($url) {
+			$citation .= "<a href=\"$url\">$url</a>";
+		}
+		else {
+			$citation .= "";
+}
+
+break;
+
+// END WEBPAGE
 
 }
 }
 else {
-$citation = "document type yet to be filled out!";
+$citation = "Document type unrecognized.";
 }
 return $citation;
 
