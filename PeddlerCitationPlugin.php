@@ -17,7 +17,7 @@
 ///
 /// Stephen Balogh, 2015 | stephen.balogh@nyu.edu
 
-class ChicagoCitePlugin extends Omeka_Plugin_AbstractPlugin
+class PeddlerCitationPlugin extends Omeka_Plugin_AbstractPlugin
 {
 	protected $_filters = array('item_citation');
 
